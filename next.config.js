@@ -4,7 +4,7 @@ const nextConfig = {
   trailingSlash: true,
   images: { unoptimized: true },
   // Set basePath if deploying to a subpath like /sandcastle-builder
-  basePath: '/sandcastle-builder',
+  basePath: '/sandcastle',
 }
 
 module.exports = nextConfig
