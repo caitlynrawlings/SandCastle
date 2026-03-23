@@ -40,16 +40,6 @@ export default function PresentPanel({ shapes, studentName, setStudentName }) {
     setSubmitted(true)
   }
 
-  const stepBreakdown = shapes.map((s, i) => {
-    const formula = {
-      sphere:     `(4/3) × π × ${s.radius}³`,
-      hemisphere: `(2/3) × π × ${s.radius}³`,
-      cylinder:   `π × ${s.radius}² × ${s.height}`,
-      cone:       `(1/3) × π × ${s.radius}² × ${s.height}`,
-    }[s.type] || ''
-
-    return { ...s, formula, index: i + 1 }
-  })
 
   return (
     <div className="present-panel">
@@ -71,27 +61,6 @@ export default function PresentPanel({ shapes, studentName, setStudentName }) {
         />
       </label>
 
-      {/* Shape breakdown for reference during presentation */}
-      <div className="breakdown-section">
-        <div className="section-head">📐 Your Shapes</div>
-        <div className="breakdown-list">
-          {stepBreakdown.map(s => (
-            <div key={s.id} className="breakdown-item">
-              <span className="breakdown-num">{s.index}.</span>
-              <div className="breakdown-body">
-                <span className="breakdown-type">{shapeLabel(s.type)}</span>
-                <span className="breakdown-formula">{s.formula}</span>
-                <span className="breakdown-vol">= {s.volume.toFixed(2)} cm³</span>
-              </div>
-            </div>
-          ))}
-          {shapes.length > 1 && (
-            <div className="breakdown-total">
-              Total = {shapes.map(s => s.volume.toFixed(2)).join(' + ')} = <strong>{totalVolume.toFixed(2)} cm³</strong>
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Student answer */}
       {!submitted ? (
@@ -122,7 +91,13 @@ export default function PresentPanel({ shapes, studentName, setStudentName }) {
               <div>You said: <strong>{result.entered.toFixed(2)} cm³</strong></div>
               <div>Correct: <strong>{result.actual.toFixed(2)} cm³</strong></div>
             </div>
+            <div className={`budget-result ${result.actual > 5000 ? 'over' : 'under'}`}>
+              {result.actual > 5000
+                ? `🚨 Over budget! Your castle used ${result.actual.toFixed(0)} cm³ — ${(result.actual - 5000).toFixed(0)} cm³ over the 5,000 limit.`
+                : `✅ Within budget! You used ${result.actual.toFixed(0)} of your 5,000 cm³.`}
+            </div>
           </div>
+
           <button className="retry-btn" onClick={() => { setSubmitted(false); setEnteredVolume(''); setResult(null) }}>
             Try Again
           </button>
@@ -251,6 +226,15 @@ export default function PresentPanel({ shapes, studentName, setStudentName }) {
         .result-grade { font-size: 1.2rem; font-weight: 900; color: #1A2E3B; margin-bottom: 6px; font-family: 'Fredoka One', cursive; }
         .result-message { font-size: 0.82rem; color: #1A2E3B; margin-bottom: 10px; line-height: 1.5; }
         .result-nums { display: flex; flex-direction: column; gap: 3px; font-size: 0.8rem; color: #1A2E3B; }
+        .budget-result {
+          margin-top: 10px;
+          padding: 8px 10px;
+          border-radius: 8px;
+          font-size: 0.78rem;
+          font-weight: 700;
+        }
+        .budget-result.over { background: #FFE5E5; color: #C62828; }
+        .budget-result.under { background: #E8F5E9; color: #2E7D32; }
         .retry-btn {
           width: 100%;
           padding: 10px;

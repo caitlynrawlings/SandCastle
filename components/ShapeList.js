@@ -1,17 +1,17 @@
-import { shapeLabel, MAX_SAND } from '../lib/store'
+import { shapeLabel } from '../lib/store'
 
 const SHAPE_COLORS = {
-  sphere:     '#F4A261',
-  hemisphere: '#E76F51',
+  sphere:     '#F4D35E',
+  hemisphere: '#F4D35E',
   cylinder:   '#F4D35E',
-  cone:       '#EE6C4D',
+  cone:       '#F4D35E',
 }
 
-const SHAPE_FORMULAS = {
-  sphere:     (s) => `V = (4/3)π(${s.radius})³`,
-  hemisphere: (s) => `V = (2/3)π(${s.radius})³`,
-  cylinder:   (s) => `V = π(${s.radius})²(${s.height})`,
-  cone:       (s) => `V = (1/3)π(${s.radius})²(${s.height})`,
+const SHAPE_DIMS = {
+  sphere:     (s) => `r = ${s.radius}`,
+  hemisphere: (s) => `r = ${s.radius}`,
+  cylinder:   (s) => `r = ${s.radius}, h = ${s.height}`,
+  cone:       (s) => `r = ${s.radius}, h = ${s.height}`,
 }
 
 export default function ShapeList({ shapes, selectedId, onSelect, onDelete }) {
@@ -39,10 +39,7 @@ export default function ShapeList({ shapes, selectedId, onSelect, onDelete }) {
                   {i + 1}. {shapeLabel(shape.type)}
                 </div>
                 <div className="shape-item-formula">
-                  {SHAPE_FORMULAS[shape.type]?.(shape)}
-                </div>
-                <div className="shape-item-vol">
-                  = {shape.volume.toFixed(2)} cm³
+                  {SHAPE_DIMS[shape.type]?.(shape)}
                 </div>
               </div>
               <button
@@ -54,23 +51,6 @@ export default function ShapeList({ shapes, selectedId, onSelect, onDelete }) {
               </button>
             </div>
           ))}
-        </div>
-      )}
-
-      {shapes.length > 0 && (
-        <div className="total-section">
-          <div className="total-label">Total Volume:</div>
-          <div className="total-value">{totalVolume.toFixed(2)} cm³</div>
-          <div className="total-hint">
-            = {shapes.map((s, i) => (
-              <span key={s.id}>
-                {i > 0 && ' + '}{s.volume.toFixed(2)}
-              </span>
-            ))}
-          </div>
-          <div className="sand-used">
-            Sand used: {((totalVolume / MAX_SAND) * 100).toFixed(1)}%
-          </div>
         </div>
       )}
 

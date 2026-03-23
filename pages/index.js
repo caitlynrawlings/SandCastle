@@ -149,17 +149,18 @@ export default function Home() {
 
   // ── Share link
   const handleShare = () => {
-    const encoded = encodeCastle(shapes, studentName)
-    if (!encoded) return
-    const url = `${window.location.origin}${window.location.pathname}#castle=${encoded}`
-    navigator.clipboard.writeText(url).then(() => {
-      setSharePulse(true)
-      setTimeout(() => setSharePulse(false), 1500)
-      notify('Link copied to clipboard! Share it with your teacher. 🔗', 'success')
-    }).catch(() => {
-      // Fallback: prompt
-      prompt('Copy this link:', url)
-    })
+    const name = studentName.trim()
+    if (!name) {
+      notify('Enter your name first before sharing!', 'error')
+      return
+    }
+    try {
+      const encoded = btoa(encodeURIComponent(JSON.stringify({ shapes, studentName: name })))
+      const url = `${window.location.origin}${window.location.pathname}#castle=${encoded}`
+      navigator.clipboard.writeText(url).then(() => {
+        showNotification('Link copied! Share it with your teacher. 🔗', 'success')
+      }).catch(() => prompt('Copy this link:', url))
+    } catch {}
   }
 
   const selectedShape   = shapes.find(s => s.id === selectedId) || null

@@ -30,69 +30,47 @@ export default function BuildPanel({ onAddShape, sandUsed, selectedShapeInfo, on
   const [height, setHeight] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [userVolume, setUserVolume] = useState('')
+  const [volError, setVolError] = useState('')
 
   const needsHeight = selectedType === 'cylinder' || selectedType === 'cone'
-  const previewVolume = calcVolume(selectedType, radius, height)
-  const sandLeft = MAX_SAND - sandUsed
 
   const handleAdd = () => {
-    setError('')
-    setSuccess('')
+  setError('')
+  setSuccess('')
+  setVolError('')
 
-    const r = parseFloat(radius)
-    const h = parseFloat(height) || r * 2
+  const r = parseFloat(radius)
+  const h = parseFloat(height) || r * 2
 
-    if (isNaN(r) || r <= 0) {
-      setError('Please enter a valid radius (must be > 0)')
-      return
-    }
-    if (needsHeight && (isNaN(parseFloat(height)) || parseFloat(height) <= 0)) {
-      setError('Please enter a valid height (must be > 0)')
-      return
-    }
-    if (r > 15) {
-      setError('Radius is too big! Max is 15 units.')
-      return
-    }
-    if (needsHeight && parseFloat(height) > 25) {
-      setError('Height is too big! Max is 25 units.')
-      return
-    }
+  if (isNaN(r) || r <= 0) { setError('Please enter a valid radius (must be > 0)'); return }
+  if (needsHeight && (isNaN(parseFloat(height)) || parseFloat(height) <= 0)) { setError('Please enter a valid height (must be > 0)'); return }
+  if (r > 15) { setError('Radius is too big! Max is 15 units.'); return }
+  if (needsHeight && parseFloat(height) > 25) { setError('Height is too big! Max is 25 units.'); return }
 
-    const vol = calcVolume(selectedType, r, needsHeight ? h : r)
-    if (vol > sandLeft) {
-      setError(`Not enough sand! This shape needs ${vol.toFixed(0)} cm³ but you only have ${sandLeft.toFixed(0)} cm³ left.`)
-      return
-    }
+  const correctVol = calcVolume(selectedType, r, needsHeight ? parseFloat(height) : r)
+  const entered = parseFloat(userVolume)
+  if (isNaN(entered)) { setVolError('Calculate the volume and enter it before adding'); return }
+  const pctError = Math.abs(entered - correctVol) / correctVol * 100
+  if (pctError > 3) { setVolError('Not quite — check your formula and try again'); return }
 
-    const result = onAddShape(selectedType, r, needsHeight ? h : r)
-    if (result && !result.ok) {
-      setError(result.reason)
-    } else {
-      setSuccess(`${shapeLabel(selectedType)} added! Click on the scene to place it.`)
-      setTimeout(() => setSuccess(''), 3000)
-    }
+  const result = onAddShape(selectedType, r, needsHeight ? parseFloat(height) : r)
+  if (result && !result.ok) {
+    setError(result.reason)
+  } else {
+    setSuccess(`${shapeLabel(selectedType)} added! Click on the scene to place it.`)
+    setUserVolume('')
+    setTimeout(() => setSuccess(''), 3000)
   }
-
-  const pct = (sandUsed / MAX_SAND) * 100
+}
 
   return (
     <div className="panel build-panel">
       <h2 className="panel-title">🏖️ Build Your Castle</h2>
 
-      {/* Sand meter */}
-      <div className="sand-meter">
-        <div className="sand-meter-label">
-          <span>🪣 Sand Used</span>
-          <span className={pct > 85 ? 'danger' : ''}>{sandUsed.toFixed(0)} / {MAX_SAND} cm³</span>
-        </div>
-        <div className="sand-bar-bg">
-          <div
-            className={`sand-bar-fill ${pct > 85 ? 'danger' : pct > 65 ? 'warning' : ''}`}
-            style={{ width: `${Math.min(pct, 100)}%` }}
-          />
-        </div>
-        {pct > 85 && <p className="warning-text">⚠️ Almost out of sand!</p>}
+      {/* Sand budget */}
+      <div className="sand-budget">
+        Sand budget: <strong>{MAX_SAND.toFixed(0)} cm³</strong> — track your usage!
       </div>
 
       {/* Shape selector */}
@@ -148,17 +126,21 @@ export default function BuildPanel({ onAddShape, sandUsed, selectedShapeInfo, on
         )}
       </div>
 
-      {/* Preview volume */}
-      {previewVolume > 0 && (
-        <div className="preview-vol">
-          Preview volume: <strong>{previewVolume.toFixed(1)} cm³</strong>
-          {previewVolume > sandLeft && <span className="danger-text"> (too much sand!)</span>}
-        </div>
-      )}
 
       {error && <div className="error-box">❌ {error}</div>}
       {success && <div className="success-box">✅ {success}</div>}
 
+      <label className="volume-label">
+        What is the volume of this shape? (cm³)
+        <input
+          type="number"
+          step="0.01"
+          value={userVolume}
+          onChange={e => { setUserVolume(e.target.value); setVolError('') }}
+          placeholder="Calculate and enter here..."
+        />
+      </label>
+      {volError && <div className="error-box">❌ {volError}</div>}
       <button className="add-btn" onClick={handleAdd}>
         + Add Shape to Castle
       </button>
@@ -169,7 +151,6 @@ export default function BuildPanel({ onAddShape, sandUsed, selectedShapeInfo, on
           <div className="selected-title">Selected: {shapeLabel(selectedShapeInfo.type)}</div>
           <div className="selected-stats">
             r = {selectedShapeInfo.radius} | {selectedShapeInfo.type !== 'sphere' && selectedShapeInfo.type !== 'hemisphere' ? `h = ${selectedShapeInfo.height} | ` : ''}
-            V = {selectedShapeInfo.volume.toFixed(1)} cm³
           </div>
           <button className="delete-btn" onClick={onDeleteSelected}>
             🗑️ Remove Shape
@@ -186,31 +167,18 @@ export default function BuildPanel({ onAddShape, sandUsed, selectedShapeInfo, on
           margin: 0 0 16px;
           font-family: 'Fredoka One', cursive;
         }
-        .sand-meter { margin-bottom: 18px; }
-        .sand-meter-label {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.8rem;
-          font-weight: 600;
+        .sand-budget {
+          font-size: 0.78rem;
           color: #5C3D11;
-          margin-bottom: 6px;
-        }
-        .sand-meter-label .danger { color: #E63946; }
-        .sand-bar-bg {
-          height: 10px;
-          background: #E8D5A3;
+          background: #FFF8E7;
+          border: 1.5px solid #E8D5A3;
           border-radius: 10px;
-          overflow: hidden;
+          padding: 8px 12px;
+          margin-bottom: 16px;
         }
-        .sand-bar-fill {
-          height: 100%;
-          background: #F4A261;
-          border-radius: 10px;
-          transition: width 0.4s ease;
+        .sand-budget strong {
+          color: #E76F51;
         }
-        .sand-bar-fill.warning { background: #FFD166; }
-        .sand-bar-fill.danger { background: #E63946; }
-        .warning-text { font-size: 0.75rem; color: #E63946; margin: 4px 0 0; }
 
         .section-label {
           font-size: 0.75rem;
@@ -279,6 +247,29 @@ export default function BuildPanel({ onAddShape, sandUsed, selectedShapeInfo, on
         }
         .inputs input:focus { border-color: #F4A261; }
 
+        .volume-label {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: #5C3D11;
+          margin-bottom: 10px;
+          margin-top: 4px;
+        }
+        .volume-label input {
+          padding: 8px 10px;
+          border: 2px solid #E8D5A3;
+          border-radius: 8px;
+          font-size: 0.9rem;
+          background: #FFFBF0;
+          color: #3D2B0A;
+          outline: none;
+          transition: border-color 0.15s;
+          font-family: 'Nunito', sans-serif;
+        }
+        .volume-label input:focus { border-color: #2A9D8F; }
+
         .preview-vol {
           font-size: 0.8rem;
           color: #5C3D11;
@@ -310,7 +301,8 @@ export default function BuildPanel({ onAddShape, sandUsed, selectedShapeInfo, on
 
         .add-btn {
           width: 100%;
-          padding: 12px;
+          padding: 15px;
+          margin-top: 5px;
           background: linear-gradient(135deg, #F4A261, #E76F51);
           border: none;
           border-radius: 12px;
