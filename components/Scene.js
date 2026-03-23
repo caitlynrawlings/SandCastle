@@ -1,223 +1,181 @@
-import { useRef, useState, useEffect } from 'react'
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { OrbitControls, Grid, Environment, Text } from '@react-three/drei'
+import { useRef, useState, useEffect, useCallback } from 'react'
+import { Canvas, useThree } from '@react-three/fiber'
+import { OrbitControls, Grid, Text } from '@react-three/drei'
 import * as THREE from 'three'
 import { useStore } from '../lib/store'
 import { computeSettleY, validatePlacement } from '../lib/physics'
 
-// Individual shape mesh
-function ShapeMesh({ shape, isSelected, onSelect, isDragging, presentMode }) {
-  const meshRef = useRef()
+function getRenderY(type, y, r, h) {
+  switch (type) {
+    case 'sphere':     return y + r
+    case 'hemisphere': return y
+    case 'cylinder':   return y + h / 2
+    case 'cone':       return y + h / 2
+    default:           return y
+  }
+}
+
+function ShapeGeometry({ type, r, h }) {
+  switch (type) {
+    case 'sphere':     return <sphereGeometry args={[r, 32, 32]} />
+    case 'hemisphere': return <sphereGeometry args={[r, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2]} />
+    case 'cylinder':   return <cylinderGeometry args={[r, r, h, 32]} />
+    case 'cone':       return <coneGeometry args={[r, h, 32]} />
+    default:           return <sphereGeometry args={[r, 32, 32]} />
+  }
+}
+
+const BASE_COLORS = {
+  sphere:     '#F4D35E',
+  hemisphere: '#F4D35E',
+  cylinder:   '#F4D35E',
+  cone:       '#F4D35E',
+}
+
+function PlacedShape({ shape, isSelected, onSelect, presentMode }) {
   const [hovered, setHovered] = useState(false)
-
-  const colors = {
-    sphere:     '#F4A261',
-    hemisphere: '#E76F51',
-    cylinder:   '#F4D35E',
-    cone:       '#EE6C4D',
-  }
-
-  const color = isSelected ? '#FFD166' : hovered ? '#FFE8A3' : colors[shape.type] || '#F4A261'
-
-  useFrame(() => {
-    if (meshRef.current && isSelected && !presentMode) {
-      meshRef.current.rotation.y += 0.005
-    }
-  })
-
   const { radius: r, height: h, x, y, z, type } = shape
-
-  const geometry = () => {
-    switch (type) {
-      case 'sphere':
-        return <sphereGeometry args={[r, 32, 32]} />
-      case 'hemisphere':
-        return <sphereGeometry args={[r, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2]} />
-      case 'cylinder':
-        return <cylinderGeometry args={[r, r, h, 32]} />
-      case 'cone':
-        return <coneGeometry args={[r, h, 32]} />
-      default:
-        return <sphereGeometry args={[r, 32, 32]} />
-    }
-  }
-
-  // Adjust Y so shapes sit properly
-  const renderY = (() => {
-    switch (type) {
-      case 'sphere':     return y + r
-      case 'hemisphere': return y
-      case 'cylinder':   return y + h / 2
-      case 'cone':       return y + h / 2
-      default:           return y
-    }
-  })()
+  const renderY = getRenderY(type, y, r, h)
+  const color = isSelected ? '#FFD166' : hovered ? '#FFE8A3' : BASE_COLORS[type] || '#F4A261'
 
   return (
     <mesh
-      ref={meshRef}
       position={[x, renderY, z]}
-      onClick={(e) => { e.stopPropagation(); onSelect(shape.id) }}
-      onPointerOver={(e) => { e.stopPropagation(); setHovered(true) }}
+      onClick={(e) => { e.stopPropagation(); if (!presentMode) onSelect(shape.id) }}
+      onPointerOver={(e) => { e.stopPropagation(); if (!presentMode) setHovered(true) }}
       onPointerOut={() => setHovered(false)}
-      castShadow
-      receiveShadow
+      castShadow receiveShadow
     >
-      {geometry()}
-      <meshStandardMaterial
-        color={color}
-        roughness={0.8}
-        metalness={0.1}
-        transparent={isSelected}
-        opacity={isSelected ? 0.85 : 1}
-      />
+      <ShapeGeometry type={type} r={r} h={h} />
+      <meshStandardMaterial color={color} roughness={0.8} metalness={0.1} />
     </mesh>
   )
 }
 
-// Ghost shape for preview during placement
-function GhostShape({ shape }) {
+function GhostShape({ shape, isValid }) {
   if (!shape) return null
   const { radius: r, height: h, x, y, z, type } = shape
-
-  const renderY = (() => {
-    switch (type) {
-      case 'sphere':     return y + r
-      case 'hemisphere': return y
-      case 'cylinder':   return y + h / 2
-      case 'cone':       return y + h / 2
-      default:           return y
-    }
-  })()
-
-  const geometry = () => {
-    switch (type) {
-      case 'sphere':     return <sphereGeometry args={[r, 32, 32]} />
-      case 'hemisphere': return <sphereGeometry args={[r, 32, 32, 0, Math.PI * 2, 0, Math.PI / 2]} />
-      case 'cylinder':   return <cylinderGeometry args={[r, r, h, 32]} />
-      case 'cone':       return <coneGeometry args={[r, h, 32]} />
-      default:           return <sphereGeometry args={[r, 32, 32]} />
-    }
-  }
-
+  const renderY = getRenderY(type, y, r, h)
   return (
     <mesh position={[x, renderY, z]}>
-      {geometry()}
-      <meshStandardMaterial color="#88CCFF" transparent opacity={0.4} wireframe={false} />
+      <ShapeGeometry type={type} r={r} h={h} />
+      <meshStandardMaterial color={isValid ? '#0080d6' : '#FF3333'} transparent opacity={0.55} />
     </mesh>
   )
 }
 
-// Drag handler component
-function DragPlane({ onMove }) {
+function GroundTracker({ onMove }) {
   const { camera, gl } = useThree()
-  const planeRef = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0))
+  const plane = useRef(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0))
   const raycaster = useRef(new THREE.Raycaster())
 
   useEffect(() => {
     const canvas = gl.domElement
-
-    const handleMouseMove = (e) => {
+    const handle = (e) => {
       const rect = canvas.getBoundingClientRect()
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY
       const mouse = new THREE.Vector2(
-        ((e.clientX - rect.left) / rect.width) * 2 - 1,
-        -((e.clientY - rect.top) / rect.height) * 2 + 1
+        ((clientX - rect.left) / rect.width) * 2 - 1,
+        -((clientY - rect.top) / rect.height) * 2 + 1
       )
       raycaster.current.setFromCamera(mouse, camera)
       const target = new THREE.Vector3()
-      raycaster.current.ray.intersectPlane(planeRef.current, target)
+      raycaster.current.ray.intersectPlane(plane.current, target)
       if (target) onMove(target.x, target.z)
     }
-
-    canvas.addEventListener('mousemove', handleMouseMove)
-    return () => canvas.removeEventListener('mousemove', handleMouseMove)
+    canvas.addEventListener('mousemove', handle)
+    canvas.addEventListener('touchmove', handle)
+    return () => {
+      canvas.removeEventListener('mousemove', handle)
+      canvas.removeEventListener('touchmove', handle)
+    }
   }, [camera, gl, onMove])
 
   return null
 }
 
-export default function Scene({ pendingShape, onPlaceShape, presentMode, autoRotate }) {
+export default function Scene({
+  pendingShape,
+  movingShapeId,
+  onPlaceShape,
+  onMoveShape,
+  onSelectShape,
+  onInvalidAttempt,
+  presentMode,
+  autoRotate,
+}) {
   const shapes = useStore(s => s.shapes)
   const selectedId = useStore(s => s.selectedId)
-  const selectShape = useStore(s => s.selectShape)
-  const updateShapePosition = useStore(s => s.updateShapePosition)
+  const [cursor, setCursor] = useState({ x: 0, z: 0 })
 
-  const [ghostPos, setGhostPos] = useState({ x: 0, z: 0 })
+  const isMoving = movingShapeId != null
+  const isActive = pendingShape != null || isMoving
+  const movingShape = isMoving ? shapes.find(s => s.id === movingShapeId) : null
+  const previewBase = pendingShape || movingShape
+  const othersForValidation = isMoving ? shapes.filter(s => s.id !== movingShapeId) : shapes
 
-  // Ghost for pending placement
-  const ghostShape = pendingShape ? {
-    ...pendingShape,
-    x: ghostPos.x,
-    z: ghostPos.z,
-    y: computeSettleY({ ...pendingShape, x: ghostPos.x, z: ghostPos.z }, shapes),
-  } : null
+  const ghost = previewBase ? (() => {
+    const y = computeSettleY({ ...previewBase, x: cursor.x, z: cursor.z }, othersForValidation)
+    return { ...previewBase, x: cursor.x, z: cursor.z, y }
+  })() : null
 
-  const handleCanvasClick = (e) => {
-    if (pendingShape) {
-      // Place the shape
-      const settled = computeSettleY({ ...pendingShape, x: ghostPos.x, z: ghostPos.z }, shapes)
-      const result = validatePlacement(
-        { ...pendingShape, x: ghostPos.x, z: ghostPos.z, y: settled },
-        shapes
-      )
-      onPlaceShape({ x: ghostPos.x, z: ghostPos.z, y: settled, valid: result.valid, errors: result.errors })
+  const validation = ghost ? validatePlacement(ghost, othersForValidation) : { valid: true, errors: [] }
+
+  const handleClick = useCallback(() => {
+    if (!ghost) { onSelectShape(null); return }
+    if (!validation.valid) { onInvalidAttempt(validation.errors[0]); return }
+    if (isMoving) {
+      onMoveShape({ id: movingShapeId, x: ghost.x, z: ghost.z, y: ghost.y })
     } else {
-      selectShape(null)
+      onPlaceShape({ x: ghost.x, z: ghost.z, y: ghost.y })
     }
-  }
+  }, [ghost, validation, isMoving, movingShapeId, onPlaceShape, onMoveShape, onSelectShape, onInvalidAttempt])
 
   return (
     <Canvas
       shadows
       camera={{ position: [0, 25, 45], fov: 50 }}
       style={{ background: 'linear-gradient(180deg, #87CEEB 0%, #E0C89A 100%)' }}
-      onClick={handleCanvasClick}
+      onClick={handleClick}
     >
       <ambientLight intensity={0.6} />
-      <directionalLight
-        position={[20, 40, 20]}
-        intensity={1.2}
-        castShadow
-        shadow-mapSize={[2048, 2048]}
-      />
+      <directionalLight position={[20, 40, 20]} intensity={1.2} castShadow shadow-mapSize={[2048, 2048]} />
       <directionalLight position={[-10, 10, -10]} intensity={0.3} />
 
-      {/* Sand ground */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[120, 120]} />
         <meshStandardMaterial color="#D4A853" roughness={1} />
       </mesh>
 
-      {/* Grid overlay */}
       <Grid
+        position={[0, 0.02, 0]}
         args={[40, 40]}
-        position={[0, 0.01, 0]}
         cellColor="#C49A4A"
         sectionColor="#B8860B"
         cellSize={2}
         sectionSize={10}
         fadeDistance={60}
         fadeStrength={1}
+        followCamera={false}
+        infiniteGrid={false}
       />
 
-      {/* Shapes */}
-      {shapes.map(shape => (
-        <ShapeMesh
+      {shapes.filter(s => s.id !== movingShapeId).map(shape => (
+        <PlacedShape
           key={shape.id}
           shape={shape}
           isSelected={shape.id === selectedId}
-          onSelect={selectShape}
+          onSelect={onSelectShape}
           presentMode={presentMode}
         />
       ))}
 
-      {/* Ghost preview */}
-      {pendingShape && <GhostShape shape={ghostShape} />}
-      {pendingShape && <DragPlane onMove={(x, z) => setGhostPos({ x, z })} />}
+      {ghost && <GhostShape shape={ghost} isValid={validation.valid} />}
+      {isActive && <GroundTracker onMove={(x, z) => setCursor({ x, z })} />}
 
-      {/* Camera controls */}
       <OrbitControls
-        enablePan={!pendingShape}
+        enablePan={!isActive}
         autoRotate={autoRotate}
         autoRotateSpeed={3}
         minPolarAngle={0.1}
@@ -226,17 +184,9 @@ export default function Scene({ pendingShape, onPlaceShape, presentMode, autoRot
         maxDistance={80}
       />
 
-      {/* Decorative text */}
-      {shapes.length === 0 && (
-        <Text
-          position={[0, 0.5, 0]}
-          rotation={[-Math.PI / 2, 0, 0]}
-          fontSize={2.5}
-          color="#B8860B"
-          anchorX="center"
-          anchorY="middle"
-        >
-          Click a shape to start building!
+      {shapes.length === 0 && !isActive && (
+        <Text position={[0, 0.5, 0]} rotation={[-Math.PI / 2, 0, 0]} fontSize={2.5} color="#B8860B" anchorX="center" anchorY="middle">
+          Add a shape to start building!
         </Text>
       )}
     </Canvas>
