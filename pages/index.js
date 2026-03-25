@@ -227,7 +227,7 @@ const handleMoveShape = useCallback(({ id, x, z }) => {
           )}
 
           {viewOnly && (
-            <span className="viewing-badge">👀 Viewing shared castle</span>
+            <span className="viewing-badge">Viewing shared castle</span>
           )}
 
           <div className="topbar-right">

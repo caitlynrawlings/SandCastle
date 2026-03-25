@@ -167,8 +167,8 @@ export default function Scene({
       <directionalLight position={[-10, 10, -10]} intensity={0.3} />
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[120, 120]} />
-        <meshStandardMaterial color="#D4A853" roughness={1} />
+        <planeGeometry args={[200, 200]} />
+        <meshStandardMaterial color="#fedb93" roughness={1} />
       </mesh>
 
       <Grid
@@ -197,7 +197,12 @@ export default function Scene({
       ))}
 
       {ghost && <GhostShape shape={ghost} isValid={validation.valid} />}
-      {isActive && <GroundTracker onMove={(x, z) => setCursor({ x, z })} />}
+      {isActive && <GroundTracker onMove={(x, z) => {
+        const BUILD_LIMIT = 90
+        x = Math.max(-BUILD_LIMIT, Math.min(BUILD_LIMIT, x))
+        z = Math.max(-BUILD_LIMIT, Math.min(BUILD_LIMIT, z))
+        setCursor({ x, z })
+      }} />}
 
       <OrbitControls
         enablePan={!isActive}
@@ -206,7 +211,7 @@ export default function Scene({
         minPolarAngle={0.1}
         maxPolarAngle={Math.PI / 2.1}
         minDistance={10}
-        maxDistance={80}
+        maxDistance={300}
       />
 
       {shapes.length === 0 && !isActive && (
