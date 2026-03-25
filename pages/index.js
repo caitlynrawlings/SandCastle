@@ -46,6 +46,8 @@ export default function Home() {
   const [hoveredShapeId, setHoveredShapeId] = useState(null)
   const isSettling = useRef(false)
   const [viewOnly,      setViewOnly]      = useState(false) // true when opened via share link
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [shareName, setShareName] = useState('')
 
   // ── Hydration + share link detection
   useEffect(() => {
@@ -179,16 +181,20 @@ const handleMoveShape = useCallback(({ id, x, z }) => {
 
   // ── Share link
   const handleShare = () => {
-    const name = studentName.trim()
-    if (!name) {
-      notify('Enter your name first before sharing!', 'error')
-      return
-    }
+    setShareName(studentName || '')
+    setShowShareModal(true)
+  }
+
+  const handleCopyLink = () => {
+    if (!shareName.trim()) return
     try {
-      const encoded = btoa(encodeURIComponent(JSON.stringify({ shapes, studentName: name })))
+      const encoded = btoa(encodeURIComponent(JSON.stringify({ shapes, studentName: shareName.trim() })))
       const url = `${window.location.origin}${window.location.pathname}#castle=${encoded}`
       navigator.clipboard.writeText(url).then(() => {
-        notify('Link copied! Share it with your teacher.', 'success')
+        setSharePulse(true)
+        setTimeout(() => setSharePulse(false), 1500)
+        setShowShareModal(false)
+        notify('Link copied! Share it with your teacher. 🔗', 'success')
       }).catch(() => prompt('Copy this link:', url))
     } catch {}
   }
@@ -257,6 +263,36 @@ const handleMoveShape = useCallback(({ id, x, z }) => {
             {isActive && (
               <button className="notif-cancel" onClick={cancelActive}>Cancel (Esc)</button>
             )}
+          </div>
+        )}
+        {showShareModal && (
+          <div className="modal-overlay" onClick={() => setShowShareModal(false)}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+              <div className="modal-title">🔗 Share Your Castle</div>
+              <div className="modal-sub">Enter your name so your teacher knows whose castle it is</div>
+              <label className="modal-label">
+                Your Name
+                <input
+                  type="text"
+                  value={shareName}
+                  onChange={e => setShareName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleCopyLink()}
+                  placeholder="e.g. Jamie"
+                  autoFocus
+                  className="modal-input"
+                />
+              </label>
+              <button
+                className="modal-btn"
+                onClick={handleCopyLink}
+                disabled={!shareName.trim()}
+              >
+                📋 Copy Link
+              </button>
+              <button className="modal-cancel" onClick={() => setShowShareModal(false)}>
+                Cancel
+              </button>
+            </div>
           </div>
         )}
 
@@ -390,6 +426,46 @@ const handleMoveShape = useCallback(({ id, x, z }) => {
           from { opacity:0; transform:translateX(-50%) translateY(-8px); }
           to   { opacity:1; transform:translateX(-50%) translateY(0); }
         }
+
+        .modal-overlay {
+          position:fixed; inset:0; background:rgba(0,0,0,0.45);
+          z-index:200; display:flex; align-items:center; justify-content:center;
+        }
+        .modal {
+          background:#FFFBF0; border-radius:20px; padding:28px 28px 20px;
+          width:100%; max-width:340px; box-shadow:0 20px 60px rgba(92,61,17,0.25);
+          display:flex; flex-direction:column; gap:14px;
+        }
+        .modal-title {
+          font-family:'Fredoka One',cursive; font-size:1.4rem; color:#5C3D11;
+        }
+        .modal-sub {
+          font-size:0.78rem; color:#A08030; line-height:1.5; margin-top:-6px;
+        }
+        .modal-label {
+          display:flex; flex-direction:column; gap:5px;
+          font-size:0.75rem; font-weight:700; color:#5C3D11;
+        }
+        .modal-input {
+          padding:10px 12px; border:2px solid #E8D5A3; border-radius:10px;
+          font-size:0.95rem; background:white; color:#3D2B0A; outline:none;
+          font-family:'Nunito',sans-serif; transition:border-color 0.15s;
+        }
+        .modal-input:focus { border-color:#F4A261; }
+        .modal-btn {
+          padding:12px; background:linear-gradient(135deg,#F4A261,#E76F51);
+          border:none; border-radius:12px; color:white; font-size:0.95rem;
+          font-weight:800; cursor:pointer; font-family:'Fredoka One',cursive;
+          transition:all 0.15s; opacity:1;
+        }
+        .modal-btn:disabled { opacity:0.4; cursor:not-allowed; }
+        .modal-btn:not(:disabled):hover { transform:translateY(-1px); box-shadow:0 4px 12px #E76F5140; }
+        .modal-cancel {
+          background:none; border:none; color:#A08030; font-size:0.78rem;
+          cursor:pointer; font-family:'Nunito',sans-serif; text-align:center;
+          padding:4px;
+        }
+        .modal-cancel:hover { color:#5C3D11; }
 
         /* layout */
         .layout { display:flex; flex:1; overflow:hidden; min-height:0; }
