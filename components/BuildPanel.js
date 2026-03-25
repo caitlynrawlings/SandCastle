@@ -54,8 +54,8 @@ export default function BuildPanel({ onAddShape, sandUsed, selectedShapeInfo, on
   const entered = parseFloat(userVolume)
   // TODO: change the margin of error to not be a percentage
   if (isNaN(entered)) { setVolError('Calculate the volume and enter it before adding'); return }
-  const pctError = Math.abs(entered - correctVol) / correctVol * 100
-  if (pctError > 3) { setVolError('Not quite — check your formula and try again'); return }
+  const volumeError = Math.abs(entered - correctVol) 
+  if (volumeError > 1) { setVolError('Not quite — check your formula and try again'); return }
 
   const result = onAddShape(selectedType, r, needsHeight ? parseFloat(height) : r)
   if (result && !result.ok) {

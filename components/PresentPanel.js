@@ -12,31 +12,31 @@ export default function PresentPanel({ shapes, studentName, setStudentName }) {
     const entered = parseFloat(enteredVolume)
     if (isNaN(entered)) return
 
-    const pctError = Math.abs(entered - totalVolume) / totalVolume * 100
+    const error = Math.abs(entered - totalVolume)
 
     let grade = ''
     let emoji = ''
     let message = ''
 
-    if (pctError < 1) {
+    if (error === 0) {
       grade = 'Perfect!'
       emoji = '🏆'
       message = 'Your calculation is exactly right! Outstanding math skills!'
-    } else if (pctError < 5) {
+    } else if (error < 1) {
       grade = 'Excellent!'
       emoji = '⭐'
-      message = `Super close! Your answer was off by only ${pctError.toFixed(1)}%. Great work!`
-    } else if (pctError < 15) {
+      message = `Super close! Your answer was off by only ${error.toFixed(1)} cm³. Great work!`
+    } else if (error < 15) {
       grade = 'Good Try!'
       emoji = '👍'
-      message = `You were ${pctError.toFixed(1)}% off. Check your formula — you're almost there!`
+      message = `You were ${error.toFixed(1)} cm³ off. Check your formula — you're almost there!`
     } else {
       grade = 'Try Again!'
       emoji = '🔄'
-      message = `Your answer was ${pctError.toFixed(1)}% off. Review the volume formulas and try recalculating!`
+      message = `Your answer was ${error.toFixed(1)} cm³ off. Review the volume formulas and try recalculating!`
     }
 
-    setResult({ grade, emoji, message, entered, actual: totalVolume, pctError })
+    setResult({ grade, emoji, message, entered, actual: totalVolume, pctError: error })
     setSubmitted(true)
   }
 
@@ -65,7 +65,7 @@ export default function PresentPanel({ shapes, studentName, setStudentName }) {
       {/* Student answer */}
       {!submitted ? (
         <div className="answer-section">
-          <div className="section-head">🧮 What's your calculated total volume?</div>
+          <div className="section-head">What's your calculated total volume?</div>
           <div className="answer-input-row">
             <input
               type="number"
