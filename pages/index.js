@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import Head from 'next/head'
 import { useStore, calcVolume, MAX_SAND } from '../lib/store'
 import BuildPanel from '../components/BuildPanel'
 import ShapeList from '../components/ShapeList'
 import PresentPanel from '../components/PresentPanel'
+import { computeSettleY, validatePlacement, resettleAll } from '../lib/physics'
+import { calcPosFromAngles } from '@react-three/drei'
 
 const Scene = dynamic(() => import('../components/Scene'), { ssr: false })
 
@@ -41,6 +43,7 @@ export default function Home() {
   const [autoRotate,    setAutoRotate]    = useState(false)
   const [hydrated,      setHydrated]      = useState(false)
   const [sharePulse,    setSharePulse]    = useState(false)
+  const isSettling = useRef(false)
   const [viewOnly,      setViewOnly]      = useState(false) // true when opened via share link
 
   // ── Hydration + share link detection
@@ -93,11 +96,12 @@ export default function Home() {
   // ── Add a new shape (enters placement mode)
   const handleAddShape = (type, radius, height) => {
     const r = parseFloat(radius)
+    // TODO: edit this height so that it handles hemispheres appropriately (i.e. if it's a hemisphere, height should be ignored and set to radius)
     const h = parseFloat(height) || r * 2
     const vol = calcVolume(type, r, h)
-    if (sandUsed + vol > MAX_SAND) {
-      return { ok: false, reason: 'Not enough sand! Try a smaller shape.' }
-    }
+    // if (sandUsed + vol > MAX_SAND) {
+    //   return { ok: false, reason: 'Not enough sand! Try a smaller shape.' }
+    // }
     cancelActive()
     setPendingShape({ type, radius: r, height: h, volume: vol })
     notify('Move your mouse over the sand — blue = valid, red = blocked. Click to place.', 'info', true)
@@ -105,34 +109,59 @@ export default function Home() {
   }
 
   // ── Called by Scene when user clicks on a valid spot for a NEW shape
-  const handlePlaceShape = useCallback(({ x, z, y }) => {
-    if (!pendingShape) return
-    const result = addShape(pendingShape.type, pendingShape.radius, pendingShape.height)
-    if (!result.ok) { notify(result.reason, 'error'); setPendingShape(null); return }
-    const newId = useStore.getState().shapes.at(-1)?.id
-    if (newId !== undefined) updatePos(newId, x, y, z)
-    setPendingShape(null)
-    setNotification(null)
-    notify('Placed! Click any shape to move it.', 'success')
-  }, [pendingShape, addShape, updatePos, notify])
+ const handlePlaceShape = useCallback(({ x, z }) => {
+  if (!pendingShape) return
+  if (!validatePlacement({ ...pendingShape, x, z }, shapes).valid) {
+    notify('❌ Invalid placement! Try another spot.', 'error')
+    return
+  } 
+  const result = addShape(pendingShape.type, pendingShape.radius, pendingShape.height)
+  if (!result.ok) { notify(result.reason, 'error'); setPendingShape(null); return }
+  const newId = result.id
+  if (newId !== undefined) {
+    const otherShapes = useStore.getState().shapes.filter(s => s.id !== newId)
+    const settledY = computeSettleY(
+      { ...pendingShape, id: newId, x, z },
+      otherShapes
+    )
+    updatePos(newId, x, settledY, z)
+  }
+  setPendingShape(null)
+  setNotification(null)
+  notify('Placed! Click any shape to move it.', 'success')
+}, [pendingShape, addShape, updatePos, notify])
 
   // ── Called by Scene when user clicks a valid spot to DROP a shape they're moving
-  const handleMoveShape = useCallback(({ id, x, z, y }) => {
-    updatePos(id, x, y, z)
-    setMovingShapeId(null)
-    selectShape(null)
-    setNotification(null)
-    notify('Moved!', 'success')
-  }, [updatePos, selectShape, notify])
+const handleMoveShape = useCallback(({ id, x, z }) => {
+  console.log('handleMoveShape', { id, x, z })
+  isSettling.current = true
+  const movingShape = useStore.getState().shapes.find(s => s.id === id)
+  const otherShapes = useStore.getState().shapes.filter(s => s.id !== id)
+  const settledY = computeSettleY({ ...movingShape, x, z }, otherShapes)
+  // TODO: this is being entered and computed correctly when the shape is in a valide placement. 
+  // its in an invalid placement too often. it also still doesn't get placed even when it is in a valid placement (stacked on top)
+  console.log('settledY', settledY, { movingShape, otherShapes })
+  updatePos(id, x, settledY, z)
+  const resettled = resettleAll(useStore.getState().shapes)
+  resettled.forEach(s => updatePos(s.id, s.x, s.y, s.z))
+  isSettling.current = false
+  setMovingShapeId(null)
+  selectShape(null)
+  setNotification(null)
+  notify('Moved!', 'success')
+}, [updatePos, selectShape, notify])
 
   // ── Called by Scene when user clicks a placed shape (pick it up to move)
-  const handleSelectShape = useCallback((id) => {
-    if (id === null) { cancelActive(); return }
-    if (pendingShape) return // already placing something
-    selectShape(id)
-    setMovingShapeId(id)
-    notify('Move your mouse and click to reposition. Press Escape to cancel.', 'info', true)
-  }, [pendingShape, selectShape, cancelActive, notify])
+ const handleSelectShape = useCallback((id) => {
+  // TODO: figure out why this is not working. when i click to put down a shape "pendingShape" it selects the shape im placing something on
+  console.log('handleSelectShape', { id })
+  if (isSettling.current) return
+  if (id === null) { cancelActive(); return }
+  if (pendingShape) {console.log('cancelling pending placement'); return }
+  selectShape(id)
+  setTimeout(() => setMovingShapeId(id), 100)
+  notify('Move your mouse and click to reposition. Press Escape to cancel.', 'info', true)
+}, [pendingShape, selectShape, cancelActive, notify])
 
   // ── Called by Scene when user tries to place in a red (invalid) spot
   const handleInvalidAttempt = useCallback((message) => {
@@ -158,7 +187,7 @@ export default function Home() {
       const encoded = btoa(encodeURIComponent(JSON.stringify({ shapes, studentName: name })))
       const url = `${window.location.origin}${window.location.pathname}#castle=${encoded}`
       navigator.clipboard.writeText(url).then(() => {
-        showNotification('Link copied! Share it with your teacher. 🔗', 'success')
+        notify('Link copied! Share it with your teacher.', 'success')
       }).catch(() => prompt('Copy this link:', url))
     } catch {}
   }

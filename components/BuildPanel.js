@@ -43,6 +43,8 @@ export default function BuildPanel({ onAddShape, sandUsed, selectedShapeInfo, on
   const r = parseFloat(radius)
   const h = parseFloat(height) || r * 2
 
+
+
   if (isNaN(r) || r <= 0) { setError('Please enter a valid radius (must be > 0)'); return }
   if (needsHeight && (isNaN(parseFloat(height)) || parseFloat(height) <= 0)) { setError('Please enter a valid height (must be > 0)'); return }
   if (r > 15) { setError('Radius is too big! Max is 15 units.'); return }
@@ -50,6 +52,7 @@ export default function BuildPanel({ onAddShape, sandUsed, selectedShapeInfo, on
 
   const correctVol = calcVolume(selectedType, r, needsHeight ? parseFloat(height) : r)
   const entered = parseFloat(userVolume)
+  // TODO: change the margin of error to not be a percentage
   if (isNaN(entered)) { setVolError('Calculate the volume and enter it before adding'); return }
   const pctError = Math.abs(entered - correctVol) / correctVol * 100
   if (pctError > 3) { setVolError('Not quite — check your formula and try again'); return }

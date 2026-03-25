@@ -32,7 +32,7 @@ const BASE_COLORS = {
   cone:       '#F4D35E',
 }
 
-function PlacedShape({ shape, isSelected, onSelect, presentMode }) {
+function PlacedShape({ shape, isSelected, onSelect, presentMode, justSelected, isActive }) {
   const [hovered, setHovered] = useState(false)
   const { radius: r, height: h, x, y, z, type } = shape
   const renderY = getRenderY(type, y, r, h)
@@ -41,7 +41,16 @@ function PlacedShape({ shape, isSelected, onSelect, presentMode }) {
   return (
     <mesh
       position={[x, renderY, z]}
-      onClick={(e) => { e.stopPropagation(); if (!presentMode) onSelect(shape.id) }}
+      onClick={(e) => {
+        if (isActive) return
+
+        e.stopPropagation()
+        if (!presentMode) {
+          justSelected.current = true
+          setTimeout(() => { justSelected.current = false }, 150)
+          onSelect(shape.id)
+        }
+      }}
       onPointerOver={(e) => { e.stopPropagation(); if (!presentMode) setHovered(true) }}
       onPointerOut={() => setHovered(false)}
       castShadow receiveShadow
@@ -107,30 +116,44 @@ export default function Scene({
 }) {
   const shapes = useStore(s => s.shapes)
   const selectedId = useStore(s => s.selectedId)
-  const [cursor, setCursor] = useState({ x: 0, z: 0 })
+  const [cursor, setCursor] = useState(null)
+  const justSelected = useRef(false)
+
+  useEffect(() => {
+    setCursor(null)
+  }, [movingShapeId, pendingShape])
 
   const isMoving = movingShapeId != null
   const isActive = pendingShape != null || isMoving
   const movingShape = isMoving ? shapes.find(s => s.id === movingShapeId) : null
   const previewBase = pendingShape || movingShape
   const othersForValidation = isMoving ? shapes.filter(s => s.id !== movingShapeId) : shapes
+  
 
-  const ghost = previewBase ? (() => {
+  const ghost = (previewBase && cursor) ? (() => {
     const y = computeSettleY({ ...previewBase, x: cursor.x, z: cursor.z }, othersForValidation)
     return { ...previewBase, x: cursor.x, z: cursor.z, y }
   })() : null
 
   const validation = ghost ? validatePlacement(ghost, othersForValidation) : { valid: true, errors: [] }
+  console.log('validation', ghost, validation.valid, validation.errors)
 
   const handleClick = useCallback(() => {
-    if (!ghost) { onSelectShape(null); return }
+    // TODO: figure this out
+    // should be that if nothing is selected then the click wil selelct
+    // if something is selected then the click will try to place it and do nothing if placement is invalid
+    console.log('handleClick', { ghost, cursor, validation, isMoving, movingShapeId })
+    if (justSelected.current) return
+    console.log('handleClick passed justSelected check')
+    if (!ghost || !cursor) { onSelectShape(null); return }
+    console.log('handleClick passed ghost/cursor check')
     if (!validation.valid) { onInvalidAttempt(validation.errors[0]); return }
     if (isMoving) {
       onMoveShape({ id: movingShapeId, x: ghost.x, z: ghost.z, y: ghost.y })
     } else {
       onPlaceShape({ x: ghost.x, z: ghost.z, y: ghost.y })
     }
-  }, [ghost, validation, isMoving, movingShapeId, onPlaceShape, onMoveShape, onSelectShape, onInvalidAttempt])
+  }, [ghost, cursor, validation, isMoving, movingShapeId, onPlaceShape, onMoveShape, onSelectShape, onInvalidAttempt])
 
   return (
     <Canvas
@@ -168,6 +191,8 @@ export default function Scene({
           isSelected={shape.id === selectedId}
           onSelect={onSelectShape}
           presentMode={presentMode}
+          justSelected={justSelected}
+          isActive={isActive}
         />
       ))}
 
