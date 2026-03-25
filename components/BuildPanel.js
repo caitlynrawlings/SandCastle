@@ -4,10 +4,56 @@ import { calcVolume, shapeLabel, MAX_SAND } from '../lib/store'
 const SHAPES = ['sphere', 'hemisphere', 'cylinder', 'cone']
 
 const SHAPE_ICONS = {
-  sphere:     '⚪',
-  hemisphere: '🌓',
-  cylinder:   '🥫',
-  cone:       '🍦',
+  sphere: (
+    <svg viewBox="0 0 40 40" width="36" height="36">
+      <defs>
+        <radialGradient id="sg" cx="38%" cy="35%">
+          <stop offset="0%" stopColor="#FFE8A3"/>
+          <stop offset="100%" stopColor="#E76F51"/>
+        </radialGradient>
+      </defs>
+      <circle cx="20" cy="20" r="16" fill="url(#sg)"/>
+    </svg>
+  ),
+  hemisphere: (
+    <svg viewBox="0 0 40 40" width="36" height="36">
+      <defs>
+        <radialGradient id="hg" cx="38%" cy="25%">
+          <stop offset="0%" stopColor="#FFE8A3"/>
+          <stop offset="100%" stopColor="#E76F51"/>
+        </radialGradient>
+      </defs>
+      <path d="M4 24 A16 16 0 0 1 36 24 Z" fill="url(#hg)"/>
+      <ellipse cx="20" cy="24" rx="16" ry="4" fill="#C85A3A" opacity="0.5"/>
+    </svg>
+  ),
+  cylinder: (
+    <svg viewBox="0 0 40 40" width="36" height="36">
+      <defs>
+        <linearGradient id="cg" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#C85A3A"/>
+          <stop offset="40%" stopColor="#F4A261"/>
+          <stop offset="100%" stopColor="#C85A3A"/>
+        </linearGradient>
+      </defs>
+      <rect x="8" y="14" width="24" height="20" fill="url(#cg)"/>
+      <ellipse cx="20" cy="14" rx="12" ry="4" fill="#FFD166"/>
+      <ellipse cx="20" cy="34" rx="12" ry="4" fill="#B8490A" opacity="0.6"/>
+    </svg>
+  ),
+  cone: (
+    <svg viewBox="0 0 40 40" width="36" height="36">
+      <defs>
+        <linearGradient id="ng" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#C85A3A"/>
+          <stop offset="50%" stopColor="#F4A261"/>
+          <stop offset="100%" stopColor="#C85A3A"/>
+        </linearGradient>
+      </defs>
+      <polygon points="20,4 34,36 6,36" fill="url(#ng)"/>
+      <ellipse cx="20" cy="36" rx="14" ry="3.5" fill="#B8490A" opacity="0.6"/>
+    </svg>
+  ),
 }
 
 const SHAPE_FORMULAS = {
@@ -85,7 +131,7 @@ export default function BuildPanel({ onAddShape, sandUsed, selectedShapeInfo, on
             className={`shape-btn ${selectedType === type ? 'active' : ''}`}
             onClick={() => { setSelectedType(type); setError('') }}
           >
-            <span className="shape-icon">{SHAPE_ICONS[type]}</span>
+            <div className="shape-icon">{SHAPE_ICONS[type]}</div>
             <span className="shape-name">{shapeLabel(type)}</span>
           </button>
         ))}
@@ -212,7 +258,7 @@ export default function BuildPanel({ onAddShape, sandUsed, selectedShapeInfo, on
         }
         .shape-btn:hover { border-color: #F4A261; background: #FFF5E0; }
         .shape-btn.active { border-color: #E76F51; background: #FFF0E0; box-shadow: 0 0 0 2px #F4A26140; }
-        .shape-icon { font-size: 1.4rem; }
+        .shape-icon { display: flex; align-items: center; justify-content: center; }
         .shape-name { font-size: 0.7rem; font-weight: 700; color: #5C3D11; }
 
         .formula-box {
