@@ -43,6 +43,7 @@ export default function Home() {
   const [autoRotate,    setAutoRotate]    = useState(false)
   const [hydrated,      setHydrated]      = useState(false)
   const [sharePulse,    setSharePulse]    = useState(false)
+  const [hoveredShapeId, setHoveredShapeId] = useState(null)
   const isSettling = useRef(false)
   const [viewOnly,      setViewOnly]      = useState(false) // true when opened via share link
 
@@ -276,8 +277,8 @@ const handleMoveShape = useCallback(({ id, x, z }) => {
           <div className="canvas-wrap">
             {isActive && (
               <div className="placement-bar">
-                {movingShapeId ? '↕️ Moving' : '📍 Placing'} —
-                <span style={{color:'#69E0A0'}}> green = valid</span>,
+                {movingShapeId ? 'Moving' : 'Placing'} —
+                <span style={{color:'#0382f2'}}> blue = valid</span>,
                 <span style={{color:'#FF8080'}}> red = can&apos;t place here</span>
                 <button onClick={cancelActive}>Cancel</button>
               </div>
@@ -292,6 +293,7 @@ const handleMoveShape = useCallback(({ id, x, z }) => {
               onInvalidAttempt={handleInvalidAttempt}
               presentMode={mode === 'present' || viewOnly}
               autoRotate={autoRotate}
+              hoveredId={hoveredShapeId}
             />
 
             {mode === 'build' && !isActive && !viewOnly && (
@@ -307,6 +309,7 @@ const handleMoveShape = useCallback(({ id, x, z }) => {
                 selectedId={selectedId}
                 onSelect={handleSelectShape}
                 onDelete={removeShape}
+                onHover={setHoveredShapeId}
               />
             ) : (
               <PresentPanel

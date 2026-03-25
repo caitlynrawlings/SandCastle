@@ -14,7 +14,7 @@ const SHAPE_DIMS = {
   cone:       (s) => `r = ${s.radius}, h = ${s.height}`,
 }
 
-export default function ShapeList({ shapes, selectedId, onSelect, onDelete }) {
+export default function ShapeList({ shapes, selectedId, onSelect, onDelete, onHover }) {
   const totalVolume = shapes.reduce((sum, s) => sum + s.volume, 0)
 
   return (
@@ -32,6 +32,8 @@ export default function ShapeList({ shapes, selectedId, onSelect, onDelete }) {
               key={shape.id}
               className={`shape-item ${shape.id === selectedId ? 'selected' : ''}`}
               onClick={() => onSelect(shape.id)}
+              onMouseEnter={() => onHover(shape.id)}
+              onMouseLeave={() => onHover(null)}
             >
               <div className="shape-dot" style={{ background: SHAPE_COLORS[shape.type] }} />
               <div className="shape-info">

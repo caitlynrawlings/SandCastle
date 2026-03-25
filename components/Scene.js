@@ -32,12 +32,11 @@ const BASE_COLORS = {
   cone:       '#F4D35E',
 }
 
-function PlacedShape({ shape, isSelected, onSelect, presentMode, justSelected, isActive }) {
+function PlacedShape({ shape, isSelected, onSelect, presentMode, justSelected, isActive, isHovered }) {
   const [hovered, setHovered] = useState(false)
   const { radius: r, height: h, x, y, z, type } = shape
   const renderY = getRenderY(type, y, r, h)
-  const color = isSelected ? '#FFD166' : hovered ? '#FFE8A3' : BASE_COLORS[type] || '#F4A261'
-
+  const color = isSelected ? '#FFD166' : isHovered ? '#FFE8A3' : BASE_COLORS[type] || '#F4A261'
   return (
     <mesh
       position={[x, renderY, z]}
@@ -113,6 +112,7 @@ export default function Scene({
   onInvalidAttempt,
   presentMode,
   autoRotate,
+  hoveredId
 }) {
   const shapes = useStore(s => s.shapes)
   const selectedId = useStore(s => s.selectedId)
@@ -189,6 +189,7 @@ export default function Scene({
           key={shape.id}
           shape={shape}
           isSelected={shape.id === selectedId}
+          isHovered={shape.id === hoveredId}
           onSelect={onSelectShape}
           presentMode={presentMode}
           justSelected={justSelected}
