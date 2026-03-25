@@ -54,6 +54,7 @@ export default function Home() {
     setHydrated(true)
     const hash = window.location.hash
     if (hash.startsWith('#castle=')) {
+      console.log("Detected castle data in URL, loading...")
       const data = decodeCastle(hash.replace('#castle=', ''))
       if (data?.shapes) {
         // Load shared castle — clear existing and populate
