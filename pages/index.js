@@ -233,8 +233,8 @@ const handleMoveShape = useCallback(({ id, x, z }) => {
 
           <div className="topbar-right">
             <button className={`icon-btn ${autoRotate ? 'on' : ''}`}
-              onClick={() => setAutoRotate(v => !v)} title="Toggle 360° rotation">
-              {autoRotate ? '⏸' : '🔄'}
+              onClick={() => setAutoRotate(v => !v)}>
+              {autoRotate ? '⏸ Stop' : '🔄 Rotate'}
             </button>
             {!viewOnly && (
               <button className={`share-btn ${sharePulse ? 'pulse' : ''}`} onClick={handleShare}>
@@ -244,7 +244,7 @@ const handleMoveShape = useCallback(({ id, x, z }) => {
             {!viewOnly && mode === 'build' && (
               <button className="clear-btn"
                 onClick={() => { if (confirm('Clear all shapes?')) { clearAll(); cancelActive() } }}>
-                🗑️
+                🗑️ Clear
               </button>
             )}
           </div>
@@ -347,11 +347,13 @@ const handleMoveShape = useCallback(({ id, x, z }) => {
 
         .topbar-right { display:flex; gap:6px; align-items:center; margin-left:auto; }
         .icon-btn {
-          padding:5px 9px; border:2px solid rgba(255,255,255,0.2); border-radius:8px;
-          background:transparent; color:white; font-size:1rem; cursor:pointer;
-          font-family:'Nunito',sans-serif; transition:all 0.15s;
+          padding:5px 12px; border:2px solid rgba(255,255,255,0.2); border-radius:20px;
+          background:transparent; color:rgba(255,255,255,0.7); font-size:0.78rem;
+          font-weight:700; cursor:pointer; font-family:'Nunito',sans-serif; transition:all 0.15s;
+          white-space:nowrap;
         }
-        .icon-btn.on { background:rgba(135,206,235,0.25); border-color:#87CEEB; }
+        .icon-btn:hover { color:white; border-color:rgba(255,255,255,0.4); }
+        .icon-btn.on { background:rgba(135,206,235,0.2); border-color:#87CEEB; color:#87CEEB; }
         .share-btn {
           padding:5px 12px; border:2px solid rgba(255,209,102,0.5); border-radius:8px;
           background:rgba(255,209,102,0.12); color:#FFD166; font-size:0.78rem;
@@ -360,9 +362,10 @@ const handleMoveShape = useCallback(({ id, x, z }) => {
         .share-btn.pulse { background:#FFD166; color:#5C3D11; transform:scale(1.05); }
         .share-btn:hover { background:rgba(255,209,102,0.22); }
         .clear-btn {
-          padding:5px 9px; border:2px solid rgba(230,57,70,0.3); border-radius:8px;
-          background:transparent; color:#F4A261; font-size:0.9rem; cursor:pointer;
-          font-family:'Nunito',sans-serif;
+          padding:5px 12px; border:2px solid rgba(230,57,70,0.3); border-radius:20px;
+          background:transparent; color:#F4A261; font-size:0.78rem;
+          font-weight:700; cursor:pointer; font-family:'Nunito',sans-serif;
+          white-space:nowrap; transition:all 0.15s;
         }
         .clear-btn:hover { border-color:#E63946; color:#E63946; }
 

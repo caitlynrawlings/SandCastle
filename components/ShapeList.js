@@ -21,43 +21,50 @@ export default function ShapeList({ shapes, selectedId, onSelect, onDelete, onHo
     <div className="shape-list-panel">
       <h3 className="list-title">🏰 Castle Shapes</h3>
 
-      {shapes.length === 0 ? (
-        <div className="empty-state">
-          No shapes yet!<br />Add some to start building.
-        </div>
-      ) : (
-        <div className="shapes">
-          {shapes.map((shape, i) => (
-            <div
-              key={shape.id}
-              className={`shape-item ${shape.id === selectedId ? 'selected' : ''}`}
-              onClick={() => onSelect(shape.id)}
-              onMouseEnter={() => onHover(shape.id)}
-              onMouseLeave={() => onHover(null)}
-            >
-              <div className="shape-dot" style={{ background: SHAPE_COLORS[shape.type] }} />
-              <div className="shape-info">
-                <div className="shape-item-name">
-                  {i + 1}. {shapeLabel(shape.type)}
-                </div>
-                <div className="shape-item-formula">
-                  {SHAPE_DIMS[shape.type]?.(shape)}
-                </div>
-              </div>
-              <button
-                className="remove-btn"
-                onClick={(e) => { e.stopPropagation(); onDelete(shape.id) }}
-                title="Remove shape"
+      <div className="scroll-area">
+        {shapes.length === 0 ? (
+          <div className="empty-state">
+            No shapes yet!<br />Add some to start building.
+          </div>
+        ) : (
+          <div className="shapes">
+            {shapes.map((shape, i) => (
+              <div
+                key={shape.id}
+                className={`shape-item ${shape.id === selectedId ? 'selected' : ''}`}
+                onClick={() => onSelect(shape.id)}
+                onMouseEnter={() => onHover(shape.id)}
+                onMouseLeave={() => onHover(null)}
               >
-                ×
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+                <div className="shape-dot" style={{ background: SHAPE_COLORS[shape.type] }} />
+                <div className="shape-info">
+                  <div className="shape-item-name">
+                    {i + 1}. {shapeLabel(shape.type)}
+                  </div>
+                  <div className="shape-item-formula">
+                    {SHAPE_DIMS[shape.type]?.(shape)}
+                  </div>
+                </div>
+                <button
+                  className="remove-btn"
+                  onClick={(e) => { e.stopPropagation(); onDelete(shape.id) }}
+                  title="Remove shape"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <style jsx>{`
-        .shape-list-panel { padding: 0; }
+        .shape-list-panel { 
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+        }
         .list-title {
           font-size: 1rem;
           font-weight: 800;
@@ -75,7 +82,12 @@ export default function ShapeList({ shapes, selectedId, onSelect, onDelete, onHo
           border-radius: 10px;
           border: 1.5px dashed #E8D5A3;
         }
-        .shapes { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
+          .scroll-area {
+          flex: 1;
+          overflow-y: auto;
+          min-height: 0;
+        }
+        .shapes { display: flex; flex-direction: column; gap: 6px; }
         .shape-item {
           display: flex;
           align-items: flex-start;
