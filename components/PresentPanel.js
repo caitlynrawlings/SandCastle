@@ -6,11 +6,14 @@ export default function PresentPanel({ shapes, studentName, setStudentName }) {
   const [submitted, setSubmitted] = useState(false)
   const [result, setResult] = useState(null)
 
-  const totalVolume = shapes.reduce((sum, s) => sum + s.volume, 0)
+  const totalVolume = shapes.reduce((sum, s) => sum + parseFloat(parseFloat(s.volume).toFixed(2)), 0)
+  //console.log("total volume:", totalVolume)
 
   const handleSubmit = () => {
     const entered = parseFloat(enteredVolume)
     if (isNaN(entered)) return
+
+    //console.log('shapes', shapes)
 
     const error = Math.abs(entered - totalVolume)
 
@@ -22,18 +25,19 @@ export default function PresentPanel({ shapes, studentName, setStudentName }) {
       grade = 'Perfect!'
       emoji = '🏆'
       message = 'Your calculation is exactly right! Outstanding math skills!'
-    } else if (error < 1) {
-      grade = 'Excellent!'
-      emoji = '⭐'
-      message = `Super close! Your answer was off by only ${error.toFixed(1)} cm³. Great work!`
-    } else if (error < 15) {
-      grade = 'Good Try!'
-      emoji = '👍'
-      message = `You were ${error.toFixed(1)} cm³ off. Check your formula — you're almost there!`
+    // } else if (error < 1) {
+    //   grade = 'Excellent!'
+    //   emoji = '⭐'
+    //   message = `Super close! Your answer was off by only ${error.toFixed(1)} cm³. Great work!`
+    // } else if (error < 15) {
+    //   grade = 'Good Try!'
+    //   emoji = '👍'
+    //   message = `You were ${error.toFixed(1)} cm³ off. Check your formula — you're almost there!`
     } else {
       grade = 'Try Again!'
       emoji = '🔄'
-      message = `Your answer was ${error.toFixed(1)} cm³ off. Review the volume formulas and try recalculating!`
+      // message = `Your answer was ${error.toFixed(1)} cm³ off. Review the volume formulas and try recalculating!`
+       message = `Your answer wasn't quite right. Review the volume formulas and try recalculating!`
     }
 
     setResult({ grade, emoji, message, entered, actual: totalVolume, pctError: error })
@@ -88,13 +92,13 @@ export default function PresentPanel({ shapes, studentName, setStudentName }) {
             <div className="result-grade">{result.grade}</div>
             <div className="result-message">{result.message}</div>
             <div className="result-nums">
-              <div>You said: <strong>{result.entered.toFixed(2)} cm³</strong></div>
-              <div>Correct: <strong>{result.actual.toFixed(2)} cm³</strong></div>
+              <div>You said: <strong>{parseFloat(result.entered).toFixed(2)} cm³</strong></div>
+              <div>Correct: <strong>{parseFloat(result.actual).toFixed(2)} cm³</strong></div>
             </div>
             <div className={`budget-result ${result.actual > 5000 ? 'over' : 'under'}`}>
               {result.actual > 5000
-                ? `🚨 Over budget! Your castle used ${result.actual.toFixed(0)} cm³ — ${(result.actual - 5000).toFixed(0)} cm³ over the 5,000 limit.`
-                : `✅ Within budget! You used ${result.actual.toFixed(0)} of your 5,000 cm³.`}
+                ? `🚨 Over budget! Your castle used ${parseFloat(result.actual).toFixed(2)} cm³ — ${(parseFloat(result.actual) - 5000).toFixed(2)} cm³ over the 5,000 limit.`
+                : `✅ Within budget! You used ${parseFloat(result.actual).toFixed(2)} of your 5,000 cm³.`}
             </div>
           </div>
 

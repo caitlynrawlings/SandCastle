@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+
+<div id="graphs"></div>
+
+<script>
+// Create x values (like numpy.linspace)
+function linspace(start, end, num) {
+  const arr = [];
+  const step = (end - start) / (num - 1);
+  for (let i = 0; i < num; i++) {
+    arr.push(start + step * i);
+  }
+  return arr;
+}
+
+const x = linspace(0, 12, 200);
+
+// Helper to compute y values
+function computeY(x, func) {
+  return x.map(func);
+}
+
+// Datasets (same as your Python)
+const datasets = [
+  {
+    y: computeY(x, v => 60 + 5*Math.sin(v/1.5) + Math.sin(v*2)),
+    xlabel: "Time (hours)",
+    ylabel: "Temperature (°F)",
+    title: "City Temperature Over a Day"
+  },
+  {
+    y: computeY(x, v => 100 + 20*Math.sin(v/2) - v*2 + 5*Math.sin(v*1.5)),
+    xlabel: "Time (seconds)",
+    ylabel: "Height (feet)",
+    title: "Roller Coaster Height"
+  },
+  {
+    y: computeY(x, v => 10 + 3*Math.sin(v*1.2) + v/2),
+    xlabel: "Time (weeks)",
+    ylabel: "Skill Level",
+    title: "Learning Progress with Ups and Downs"
+  },
+  {
+    y: computeY(x, v => 200 - 10*v + 15*Math.sin(v)),
+    xlabel: "Time (minutes)",
+    ylabel: "Battery (%)",
+    title: "Phone Battery with Usage Fluctuations"
+  },
+  {
+    y: computeY(x, v => 50 + 10*Math.sin(v/1.3) + 3*Math.cos(v*2)),
+    xlabel: "Time (days)",
+    ylabel: "Stock Price ($)",
+    title: "Stock Price Changes"
+  },
+  {
+    y: computeY(x, v => 30 + 8*Math.sin(v/2) + Math.sin(v*3)),
+    xlabel: "Time (hours)",
+    ylabel: "Traffic Speed (mph)",
+    title: "Traffic Speed Throughout Day"
+  },
+  {
+    y: computeY(x, v => 5 + Math.sin(v*2) + Math.sin(v/2) + v/3),
+    xlabel: "Time (days)",
+    ylabel: "Plant Height (cm)",
+    title: "Plant Growth with Variability"
+  },
+  {
+    y: computeY(x, v => 70 + 6*Math.sin(v) - 2*Math.cos(v*1.5)),
+    xlabel: "Time (minutes)",
+    ylabel: "Heart Rate (bpm)",
+    title: "Heart Rate During Exercise"
+  },
+  {
+    y: computeY(x, v => 40 + 12*Math.sin(v/2.5) + Math.sin(v*2.5)),
+    xlabel: "Time (hours)",
+    ylabel: "Room Temperature (°F)",
+    title: "Room Temperature Changes"
+  },
+  {
+    y: computeY(x, v => 100 - 5*v + 10*Math.sin(v/1.2)),
+    xlabel: "Time (miles driven)",
+    ylabel: "Fuel Remaining (%)",
+    title: "Fuel Level While Driving"
+  }
+];
+
+// Create graphs
+datasets.forEach((data, i) => {
+  const div = document.createElement("div");
+  div.id = "graph" + i;
+  div.style.width = "600px";
+  div.style.height = "400px";
+  document.getElementById("graphs").appendChild(div);
+
+  Plotly.newPlot(div.id, [{
+    x: x,
+    y: data.y,
+    type: "scatter"
+  }], {
+    title: data.title,
+    xaxis: { title: data.xlabel },
+    yaxis: { title: data.ylabel }
+  });
+});
+</script>
+
+</body>
+</html>

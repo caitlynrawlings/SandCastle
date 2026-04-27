@@ -96,12 +96,13 @@ export default function BuildPanel({ onAddShape, sandUsed, selectedShapeInfo, on
   if (r > 15) { setError('Radius is too big! Max is 15 units.'); return }
   if (needsHeight && parseFloat(height) > 25) { setError('Height is too big! Max is 25 units.'); return }
 
-  const correctVol = calcVolume(selectedType, r, needsHeight ? parseFloat(height) : r)
+  const correctVol = parseFloat(calcVolume(selectedType, r, needsHeight ? parseFloat(height) : r).toFixed(2))
   const entered = parseFloat(userVolume)
+
   // TODO: change the margin of error to not be a percentage
   if (isNaN(entered)) { setVolError('Calculate the volume and enter it before adding'); return }
-  const volumeError = Math.abs(entered - correctVol) 
-  if (volumeError > 1) { setVolError('Not quite — check your formula and try again'); return }
+  const volumeError = (entered !== correctVol)
+  if (entered !== correctVol) { setVolError('Not quite — check your formula and try again'); return }
 
   const result = onAddShape(selectedType, r, needsHeight ? parseFloat(height) : r)
   if (result && !result.ok) {
@@ -147,7 +148,7 @@ export default function BuildPanel({ onAddShape, sandUsed, selectedShapeInfo, on
       {/* Inputs */}
       <div className="inputs">
         <label>
-          Radius (units)
+          Radius (cm)
           <input
             type="number"
             min="0.5"
@@ -161,7 +162,7 @@ export default function BuildPanel({ onAddShape, sandUsed, selectedShapeInfo, on
 
         {needsHeight && (
           <label>
-            Height (units)
+            Height (cm)
             <input
               type="number"
               min="0.5"
@@ -180,7 +181,7 @@ export default function BuildPanel({ onAddShape, sandUsed, selectedShapeInfo, on
       {success && <div className="success-box">✅ {success}</div>}
 
       <label className="volume-label">
-        What is the volume of this shape? (cm³)
+        What is the volume of this shape? Use 3.14 for π and round to the nearest hundredth cm³.
         <input
           type="number"
           step="0.01"
