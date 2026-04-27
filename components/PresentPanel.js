@@ -87,7 +87,7 @@ export default function PresentPanel({ shapes, studentName, setStudentName }) {
         </div>
       ) : (
         <div className="result-section">
-          <div className={`result-card ${result.pctError < 5 ? 'success' : result.pctError < 15 ? 'warning' : 'error'}`}>
+          <div className={`result-card ${result.pctError === 0 ? 'success' : 'error'}`}>
             <div className="result-emoji">{result.emoji}</div>
             <div className="result-grade">{result.grade}</div>
             <div className="result-message">{result.message}</div>
